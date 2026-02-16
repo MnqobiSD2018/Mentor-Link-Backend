@@ -41,6 +41,8 @@ class User extends Authenticatable
         'specialties',
         'experience',
         'education',
+        'rate_chat',
+        'rate_video',
     ];
 
     /**
@@ -68,6 +70,8 @@ class User extends Authenticatable
             'specialties' => 'array',
             'experience' => 'array',
             'education' => 'array',
+            'rate_chat' => 'decimal:2',
+            'rate_video' => 'decimal:2',
         ];
     }
 

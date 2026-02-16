@@ -10,14 +10,21 @@ class MentorshipSession extends Model
         'mentor_id',
         'mentee_id',
         'topic',
+        'description',
         'type',
+        'date',
+        'time',
         'scheduled_at',
         'duration',
+        'price',
         'status',
+        'meeting_link',
     ];
 
     protected $casts = [
         'scheduled_at' => 'datetime',
+        'date' => 'date',
+        'price' => 'decimal:2',
     ];
 
     public function mentor()

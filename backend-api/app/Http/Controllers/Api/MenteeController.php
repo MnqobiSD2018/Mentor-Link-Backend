@@ -108,6 +108,8 @@ class MenteeController extends Controller
             'strengths' => $user->mentorProfile?->strengths ?? [],
             'experience' => $user->experience ?? [],
             'education' => $user->education ?? [],
+            'rate_chat' => (float) ($user->rate_chat ?? 15.00),
+            'rate_video' => (float) ($user->rate_video ?? 25.00),
             'stats' => [
                 'sessions' => $completedSessions,
                 'hours' => round($totalHours / 60, 1),

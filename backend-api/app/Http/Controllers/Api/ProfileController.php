@@ -39,6 +39,8 @@ class ProfileController extends Controller
             'education.*.degree' => 'nullable|string|max:255',
             'education.*.institution' => 'nullable|string|max:255',
             'education.*.year' => 'nullable|string|max:10',
+            'rate_chat' => 'nullable|numeric|min:0',
+            'rate_video' => 'nullable|numeric|min:0',
         ]);
 
         // Merge preferences if passed

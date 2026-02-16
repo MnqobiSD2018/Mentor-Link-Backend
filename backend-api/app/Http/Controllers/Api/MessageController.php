@@ -104,4 +104,61 @@ class MessageController extends Controller
             201
         );
     }
+
+    /**
+     * Create or get existing conversation with a participant.
+     * 
+     * POST /api/conversations
+     */
+    public function createConversation(Request $request): JsonResponse
+    {
+        $request->validate([
+            'participant_id' => 'required|exists:users,id',
+        ]);
+
+        $user = $request->user();
+        $participantId = $request->input('participant_id');
+
+        // Prevent conversation with self
+        if ($user->id === (int) $participantId) {
+            return response()->json(['message' => 'Cannot create conversation with yourself'], 400);
+        }
+
+        // Check if conversation already exists
+        $conversation = Conversation::where(function ($query) use ($user, $participantId) {
+            $query->where('mentor_id', $participantId)
+                  ->where('mentee_id', $user->id);
+        })->orWhere(function ($query) use ($user, $participantId) {
+            $query->where('mentor_id', $user->id)
+                  ->where('mentee_id', $participantId);
+        })->first();
+
+        if (!$conversation) {
+            // Determine mentor/mentee based on roles
+            $participant = \App\Models\User::find($participantId);
+            
+            if ($participant->role === 'mentor') {
+                $conversation = Conversation::create([
+                    'mentor_id' => $participantId,
+                    'mentee_id' => $user->id,
+                    'last_message_at' => now(),
+                ]);
+            } else {
+                $conversation = Conversation::create([
+                    'mentor_id' => $user->id,
+                    'mentee_id' => $participantId,
+                    'last_message_at' => now(),
+                ]);
+            }
+        }
+
+        $conversation->load(['mentor:id,name', 'mentee:id,name']);
+
+        return response()->json([
+            'id' => $conversation->id,
+            'mentor' => $conversation->mentor,
+            'mentee' => $conversation->mentee,
+            'created' => $conversation->wasRecentlyCreated,
+        ], $conversation->wasRecentlyCreated ? 201 : 200);
+    }
 }

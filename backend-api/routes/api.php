@@ -40,11 +40,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/mentors/{id}', [MenteeController::class, 'showMentor']);
     Route::get('/sessions', [SessionController::class, 'index']);
     Route::post('/sessions', [MentorshipSessionController::class, 'store']);
+    Route::put('/sessions/{id}', [SessionController::class, 'update']);
     Route::post('/payments', [PaymentController::class, 'store']);
     Route::post('/ratings', [RatingController::class, 'store']);
 
     // Messaging routes
     Route::get('/messages/conversations', [MessageController::class, 'index']);
+    Route::post('/conversations', [MessageController::class, 'createConversation']);
     Route::get('/messages/{conversationId}', [MessageController::class, 'show']);
     Route::post('/messages/{conversationId}', [MessageController::class, 'store']);
 
@@ -57,8 +59,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/availability/blocked', [AvailabilityController::class, 'addBlockedDate']);
     Route::delete('/availability/blocked/{id}', [AvailabilityController::class, 'deleteBlockedDate']);
 
-    // Mentor Reviews routes
+    // Reviews routes
     Route::get('/reviews/mentor', [ReviewController::class, 'index']);
+    Route::post('/reviews', [ReviewController::class, 'store']);
+    Route::get('/reviews/mentor/{mentorId}', [ReviewController::class, 'mentorReviews']);
 
     // Mentor Earnings routes
     Route::get('/earnings/mentor', [EarningsController::class, 'index']);
