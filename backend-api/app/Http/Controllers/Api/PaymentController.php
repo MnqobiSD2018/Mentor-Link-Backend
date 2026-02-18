@@ -8,6 +8,17 @@ use Illuminate\Http\Request;
 
 class PaymentController extends Controller
 {
+    public function index(Request $request)
+    {
+        // Return payments relevant to the user (either payer or potentially payee if we had that relation)
+        $payments = Payment::where('payer_id', $request->user()->id)
+            ->with(['session', 'session.mentor'])
+            ->latest()
+            ->get();
+            
+        return response()->json($payments);
+    }
+    
     public function store(Request $request)
     {
         $request->validate([

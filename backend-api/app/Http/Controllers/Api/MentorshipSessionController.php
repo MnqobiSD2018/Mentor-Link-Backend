@@ -28,7 +28,11 @@ class MentorshipSessionController extends Controller
             'duration' => 'nullable|integer|min:15',
             'price' => 'nullable|numeric|min:0',
             'topic' => 'nullable|string|max:255',
+            'description' => 'nullable|string|max:1000',
         ]);
+
+        $mentorId = $validated['mentor_id'];
+        $menteeId = $mentee->id;
 
         // Build scheduled_at from date and time if provided
         $scheduledAt = null;
@@ -44,10 +48,31 @@ class MentorshipSessionController extends Controller
             $scheduledAt = now()->addDay();
         }
 
+        // For chat sessions, find or create conversation
+        $conversationId = null;
+        if (isset($validated['type']) && $validated['type'] === 'chat') {
+            $conversation = Conversation::where(function ($query) use ($mentorId, $menteeId) {
+                $query->where('mentor_id', $mentorId)->where('mentee_id', $menteeId);
+            })->orWhere(function ($query) use ($mentorId, $menteeId) {
+                $query->where('mentor_id', $menteeId)->where('mentee_id', $mentorId);
+            })->first();
+            
+            if (!$conversation) {
+                $conversation = Conversation::create([
+                    'mentor_id' => $mentorId,
+                    'mentee_id' => $menteeId,
+                    'last_message_at' => now(),
+                ]);
+            }
+            
+            $conversationId = $conversation->id;
+        }
+
         // Create the session
         $session = MentorshipSession::create([
             'mentee_id' => $mentee->id,
-            'mentor_id' => $validated['mentor_id'],
+            'mentor_id' => $mentorId,
+            'conversation_id' => $conversationId,
             'type' => $validated['type'] ?? 'video',
             'date' => $validated['date'] ?? $scheduledAt->toDateString(),
             'time' => $validated['time'] ?? $scheduledAt->format('g:i A'),

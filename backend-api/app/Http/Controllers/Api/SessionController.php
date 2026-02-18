@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Conversation;
 use App\Models\MentorshipSession;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -77,9 +78,21 @@ class SessionController extends Controller
         $session->status = $validated['status'];
 
         // Generate Jitsi meeting link for confirmed video sessions
-        if ($session->status === 'confirmed' && $session->type === 'video' && !$session->meeting_link) {
-            $roomName = 'MentorLink_' . $session->id . '_' . Str::random(8);
-            $session->meeting_link = 'https://meet.jit.si/' . $roomName;
+        if ($session->status === 'confirmed') {
+            if (!$session->started_at) {
+                // Set started_at when confirming (if not already set)
+                $session->started_at = now();
+            }
+
+            if ($session->type === 'video' && !$session->meeting_link) {
+                $roomName = 'MentorLink_' . $session->id . '_' . Str::random(8);
+                $session->meeting_link = 'https://meet.jit.si/' . $roomName;
+            }
+        }
+
+        // Set ended_at when completing
+        if ($session->status === 'completed') {
+            $session->ended_at = now();
         }
 
         $session->save();
@@ -104,6 +117,73 @@ class SessionController extends Controller
                 'price' => (float) $session->price,
                 'status' => $session->status,
                 'meeting_link' => $session->meeting_link,
+            ]
+        ]);
+    }
+
+    /**
+     * Get active session linked to a conversation.
+     * Used by the chat interface to show timer.
+     */
+    public function getByConversation(Request $request, $conversationId): JsonResponse
+    {
+        $user = $request->user();
+
+        // Find confirmed chat session for this conversation
+        $session = MentorshipSession::where('conversation_id', $conversationId)
+            ->where('type', 'chat')
+            ->whereIn('status', ['confirmed', 'completed']) // Include completed so mentee can rate
+            ->where(function ($query) use ($user) {
+                $query->where('mentor_id', $user->id)
+                      ->orWhere('mentee_id', $user->id);
+            })
+            ->with(['mentor:id,name,avatar', 'mentee:id,name,avatar'])
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        if (!$session) {
+            return response()->json(['message' => 'No active session found'], 404);
+        }
+
+        return response()->json([
+            'data' => [
+                'id' => $session->id,
+                'mentor_id' => $session->mentor_id,
+                'mentor' => $session->mentor->name,
+                'mentee_id' => $session->mentee_id,
+                'mentee' => $session->mentee->name,
+                'topic' => $session->topic,
+                'date' => $session->date ? $session->date->format('Y-m-d') : null,
+                'time' => $session->time,
+                'duration_minutes' => $session->duration,
+                'type' => $session->type,
+                'status' => $session->status,
+                'started_at' => $session->started_at?->toISOString(),
+                'ended_at' => $session->ended_at?->toISOString(),
+                'remaining_seconds' => $session->getRemainingSeconds(),
+            ]
+        ]);
+    }
+
+    /**
+     * Quick status check for polling.
+     * Returns minimal data to reduce bandwidth.
+     */
+    public function checkStatus(Request $request, $id): JsonResponse
+    {
+        $session = MentorshipSession::findOrFail($id);
+        $user = $request->user();
+
+        // Authorization
+        if ($session->mentor_id !== $user->id && $session->mentee_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        return response()->json([
+            'data' => [
+                'id' => $session->id,
+                'status' => $session->status,
+                'ended_at' => $session->ended_at?->toISOString(),
             ]
         ]);
     }

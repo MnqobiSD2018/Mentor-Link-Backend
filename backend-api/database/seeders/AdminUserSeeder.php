@@ -18,13 +18,13 @@ class AdminUserSeeder extends Seeder
             [
                 'name' => 'Admin User',
                 'email' => 'admin@mentorlink.com',
-                'password' => Hash::make('admin123'),
+                'password' => Hash::make('admin'),
                 'role' => 'admin',
             ]
         );
 
         $this->command->info('Admin user created successfully!');
         $this->command->info('Email: admin@mentorlink.com');
-        $this->command->info('Password: admin123');
+        $this->command->info('Password: admin');
     }
 }

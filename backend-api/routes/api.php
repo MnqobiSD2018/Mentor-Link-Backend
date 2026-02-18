@@ -31,6 +31,9 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
     Route::put('/profile', [ProfileController::class, 'update']);
+    Route::put('/password', [ProfileController::class, 'updatePassword']);
+    Route::post('/profile/avatar', [ProfileController::class, 'uploadAvatar']);
+    Route::delete('/profile/avatar', [ProfileController::class, 'removeAvatar']);
 
     Route::get('/dashboard/mentee', [DashboardController::class, 'mentee']);
     Route::get('/dashboard/mentor', [DashboardController::class, 'mentor']);
@@ -41,6 +44,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/sessions', [SessionController::class, 'index']);
     Route::post('/sessions', [MentorshipSessionController::class, 'store']);
     Route::put('/sessions/{id}', [SessionController::class, 'update']);
+    Route::get('/sessions/conversation/{conversationId}', [SessionController::class, 'getByConversation']);
+    Route::get('/sessions/{id}/status', [SessionController::class, 'checkStatus']);
+    Route::get('/payments', [PaymentController::class, 'index']);
     Route::post('/payments', [PaymentController::class, 'store']);
     Route::post('/ratings', [RatingController::class, 'store']);
 
@@ -81,6 +87,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Admin Payment Management routes
     Route::get('/admin/payments', [AdminPaymentController::class, 'index']);
+    Route::get('/admin/payments/stats', [AdminPaymentController::class, 'stats']);
 
     // Admin Analytics routes
     Route::get('/admin/analytics', [AdminAnalyticsController::class, 'index']);

@@ -12,7 +12,7 @@ use Illuminate\Http\JsonResponse;
 class AdminPaymentController extends Controller
 {
     /**
-     * Display a listing of payments and financial stats.
+     * Display a listing of payments.
      */
     public function index(Request $request): JsonResponse
     {
@@ -24,43 +24,32 @@ class AdminPaymentController extends Controller
         // Fetch recent transactions with relationships
         $transactions = Payment::with(['payer:id,name,email', 'mentor:id,name,email', 'session:id,topic'])
             ->latest()
-            ->take(50)
-            ->get()
-            ->map(function ($payment) {
-                return [
-                    'id' => $payment->id,
-                    'payer' => $payment->payer ? [
-                        'id' => $payment->payer->id,
-                        'name' => $payment->payer->name,
-                        'email' => $payment->payer->email,
-                    ] : null,
-                    'mentor' => $payment->mentor ? [
-                        'id' => $payment->mentor->id,
-                        'name' => $payment->mentor->name,
-                        'email' => $payment->mentor->email,
-                    ] : null,
-                    'session_topic' => $payment->session?->topic ?? 'Session',
-                    'amount' => (float) $payment->amount,
-                    'platform_fee' => (float) $payment->platform_fee,
-                    'net_amount' => (float) ($payment->amount - $payment->platform_fee),
-                    'method' => $payment->method,
-                    'status' => $payment->status,
-                    'paid_at' => $payment->paid_at,
-                    'created_at' => $payment->created_at,
-                ];
-            });
+            ->paginate(50); // Use pagination for lists
+
+        return response()->json($transactions);
+    }
+
+    /**
+     * Display financial stats.
+     */
+    public function stats(Request $request): JsonResponse
+    {
+        // Verify admin access
+        if ($request->user()->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized. Admin access only.'], 403);
+        }
 
         // Calculate stats
         $totalRevenue = Payment::where('status', 'completed')->sum('amount');
         
         // Platform fees (stored in DB, or calculate as 10% if not stored)
         $totalFees = Payment::where('status', 'completed')->sum('platform_fee');
+        // Fallback calculation if fee wasn't recorded
         if ($totalFees == 0 && $totalRevenue > 0) {
-            // Calculate 10% fee if no platform_fee stored
             $totalFees = $totalRevenue * 0.10;
         }
 
-        // Pending payouts from Payout model
+        // Pending payouts
         $pendingPayouts = Payout::where('status', 'pending')->sum('amount');
 
         // Completed transaction count
@@ -77,6 +66,18 @@ class AdminPaymentController extends Controller
         $lastMonthRevenue = Payment::where('status', 'completed')
             ->whereBetween('created_at', [$lastMonth, $currentMonth])
             ->sum('amount');
+
+        // Return simplified JSON for dashboard
+        return response()->json([
+            'total_revenue' => $totalRevenue,
+            'platform_fees' => $totalFees,
+            'pending_payouts' => $pendingPayouts,
+            'completed_transactions' => $completedCount,
+            'active_disputes' => 0, // Placeholder
+            'monthly_growth' => $lastMonthRevenue > 0 ? (($thisMonthRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100 : 100,
+        ]);
+    }
+
 
         $revenueGrowth = $lastMonthRevenue > 0 
             ? (($thisMonthRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100 
