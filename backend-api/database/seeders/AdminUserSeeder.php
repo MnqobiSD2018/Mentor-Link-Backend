@@ -14,13 +14,13 @@ class AdminUserSeeder extends Seeder
     public function run(): void
     {
         User::updateOrCreate(
-            ['email' => 'admin@mentorlink.com'],
-            [
-                'name' => 'Admin User',
-                'email' => 'admin@mentorlink.com',
-                'password' => Hash::make('admin'),
-                'role' => 'admin',
-            ]
+        ['email' => 'admin@mentorlink.com'],
+        [
+            'name' => 'Admin User',
+            'email' => 'admin@mentorlink.com',
+            'password' => Hash::make('admin'),
+            'role' => 'admin',
+        ]
         );
 
         $this->command->info('Admin user created successfully!');
