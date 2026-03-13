@@ -31,6 +31,9 @@ class SessionController extends Controller
                 // Determine "other party" for display
                 $isMentor = $session->mentor_id === $user->id;
                 $otherUser = $isMentor ? $session->mentee : $session->mentor;
+                
+                // Check if a review exists for this session
+                $isReviewed = \App\Models\Review::where('session_id', $session->id)->exists();
 
                 return [
                     'id' => $session->id,
@@ -50,6 +53,7 @@ class SessionController extends Controller
                     'status' => $session->status,
                     'meeting_link' => $session->meeting_link,
                     'is_mentor' => $isMentor,
+                    'is_reviewed' => $isReviewed,
                     'created_at' => $session->created_at,
                 ];
             });
