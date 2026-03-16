@@ -31,6 +31,9 @@ class SessionController extends Controller
                 // Determine "other party" for display
                 $isMentor = $session->mentor_id === $user->id;
                 $otherUser = $isMentor ? $session->mentee : $session->mentor;
+                
+                // Check if a review exists for this session
+                $isReviewed = \App\Models\Review::where('session_id', $session->id)->exists();
 
                 return [
                     'id' => $session->id,
@@ -50,6 +53,7 @@ class SessionController extends Controller
                     'status' => $session->status,
                     'meeting_link' => $session->meeting_link,
                     'is_mentor' => $isMentor,
+                    'is_reviewed' => $isReviewed,
                     'created_at' => $session->created_at,
                 ];
             });
@@ -72,10 +76,15 @@ class SessionController extends Controller
         }
 
         $validated = $request->validate([
-            'status' => 'required|in:confirmed,cancelled,completed,rejected'
+            'status' => 'required|in:confirmed,cancelled,completed,rejected',
+            'reason' => 'nullable|string|max:1000'
         ]);
 
-        $session->status = $validated['status'];
+        $apiStatus = $validated['status'];
+        
+        // Map 'rejected' to 'cancelled' for the database ENUM, which only allows 
+        // ['pending', 'confirmed', 'completed', 'cancelled']
+        $session->status = $apiStatus === 'rejected' ? 'cancelled' : $apiStatus;
 
         // Generate Jitsi meeting link for confirmed video sessions
         if ($session->status === 'confirmed') {
@@ -93,6 +102,28 @@ class SessionController extends Controller
         // Set ended_at when completing
         if ($session->status === 'completed') {
             $session->ended_at = now();
+        }
+        
+        // Notify the mentee
+        if ($apiStatus === 'confirmed' || $apiStatus === 'rejected') {
+            $conversation = \App\Models\Conversation::firstOrCreate([
+                'mentor_id' => $session->mentor_id,
+                'mentee_id' => $session->mentee_id,
+            ]);
+            
+            $content = $apiStatus === 'confirmed' 
+                ? "I have accepted your {$session->type} session request for " . ($session->date ? $session->date->format('M d, Y') : 'soon') . " at {$session->time}. Looking forward to it!"
+                : "I have declined your {$session->type} session request" . (!empty($validated['reason']) ? " for the following reason: \"{$validated['reason']}\"" : " as my schedule is currently full.");
+
+            \App\Models\Message::create([
+                'conversation_id' => $conversation->id,
+                'sender_id' => $user->id,
+                'content' => $content,
+                'is_read' => false,
+                'sent_at' => now(),
+            ]);
+
+            $conversation->update(['last_message_at' => now()]);
         }
 
         $session->save();
