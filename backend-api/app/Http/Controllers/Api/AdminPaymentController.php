@@ -77,23 +77,4 @@ class AdminPaymentController extends Controller
             'monthly_growth' => $lastMonthRevenue > 0 ? (($thisMonthRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100 : 100,
         ]);
     }
-
-
-        $revenueGrowth = $lastMonthRevenue > 0 
-            ? (($thisMonthRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100 
-            : 0;
-
-        return response()->json([
-            'transactions' => $transactions,
-            'stats' => [
-                'total_revenue' => (float) $totalRevenue,
-                'total_fees' => (float) $totalFees,
-                'pending_payouts' => (float) $pendingPayouts,
-                'completed_count' => $completedCount,
-                'this_month_revenue' => (float) $thisMonthRevenue,
-                'last_month_revenue' => (float) $lastMonthRevenue,
-                'revenue_growth' => round($revenueGrowth, 1),
-            ],
-        ]);
-    }
 }

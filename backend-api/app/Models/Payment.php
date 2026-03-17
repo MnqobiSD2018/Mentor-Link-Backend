@@ -14,13 +14,14 @@ class Payment extends Model
         'platform_fee',
         'method',
         'status',
+        'description',
         'paid_at',
     ];
 
     protected $casts = [
         'paid_at' => 'datetime',
-        'amount' => 'decimal:2',
-        'platform_fee' => 'decimal:2',
+        'amount' => 'float',
+        'platform_fee' => 'float',
     ];
 
     public function session()
