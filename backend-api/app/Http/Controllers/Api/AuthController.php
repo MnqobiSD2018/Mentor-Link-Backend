@@ -18,6 +18,7 @@ class AuthController extends Controller
             'password'    => 'required|min:6',
             'role'        => 'required|in:mentor,mentee',
             'mentor_type' => 'nullable|required_if:role,mentor|string|in:alumni,industry,academic',
+            'department'  => 'nullable|required_if:role,mentor|string|max:255',
         ]);
 
         $user = User::create([
@@ -26,6 +27,7 @@ class AuthController extends Controller
             'role'        => $request->role,
             'password'    => Hash::make($request->password),
             'mentor_type' => $request->mentor_type,
+            'department'  => $request->department,
         ]);
 
         $token = $user->createToken('api-token')->plainTextToken;

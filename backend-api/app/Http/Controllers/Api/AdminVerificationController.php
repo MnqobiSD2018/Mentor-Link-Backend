@@ -34,6 +34,7 @@ class AdminVerificationController extends Controller
                     'mentor_type' => $user->mentor_type,
                     'bio' => $user->bio,
                     'headline' => $user->headline,
+                    'department' => $user->department,
                     'location' => $user->location,
                     'avatar' => $user->avatar,
                     'profile' => $user->mentorProfile ? [
@@ -129,6 +130,7 @@ class AdminVerificationController extends Controller
         }
 
         $user->verification_status = 'rejected';
+        $user->rejection_reason = $request->reason;
         $user->save();
 
         // Update mentor profile verified status if exists

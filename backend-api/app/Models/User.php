@@ -37,6 +37,8 @@ class User extends Authenticatable
         'preferences',
         'is_banned',
         'verification_status',
+        'rejection_reason',
+        'department',
         'skills',
         'specialties',
         'experience',
